@@ -13,7 +13,7 @@ const MIME_TYPE_REGEX = /.+\/([^\s]*)/;
 const LOCALIZE_ATTR = 'localize';
 const NOT_LOCALIZE_ATTR = `!${LOCALIZE_ATTR}`;
 
-function plugin(options = {}, folder = '') {
+function plugin(options = {}, folder = '', image_path_after = '') {
     var selector = options.selector || 'img[src]';
     var attribute = options.attribute || 'src';
 
@@ -54,14 +54,23 @@ function plugin(options = {}, folder = '') {
                 // Count async ops
                 count++;
 
-                getSrcBase64(options.basedir || file.base, src, folder, function(err, result, res_format, filepath) {
+                getSrcBase64(options.basedir || file.base, src, folder, image_path_after, function(err, result, res_format, filepath, image_path_after) {
                     if (err) console.error(err);
                     else
                         // Need a format in and a result for this to work
                         if (result && (ext_format || res_format)) {
                             // $img.attr('src', `data:image/${ext_format};base64,${result}`);
-                            console.log(`Going to set file to ./${filepath.replace(process.cwd() + '/', '')}`);
-                            $img.attr('src', `${filepath.replace(process.cwd() + '/', '')}`);
+                            console.log(`starting path is: ${filepath}`);
+
+                            var exclude_path = process.cwd()+ '/' +image_path_after;
+                            console.log(`exclude path is: ${exclude_path}`);
+
+                            var relative_path = getFilePath(filepath, exclude_path);
+                            console.log(`relative path is: ${relative_path}`);
+
+
+                            console.log(`Going to set file to .${relative_path}`);
+                            $img.attr('src', `.${relative_path}`);
                         } else {
                             console.error(`Failed to identify format of ${src}!`);
                         }
@@ -94,7 +103,16 @@ function createDirFromPath(path) {
   createDir(dir);
 }
 
-function getHTTPBase64(url, folder, callback) {
+// get file path after excluding an initial path
+function getFilePath(filePath, initialPath) {
+  if (filePath.indexOf(initialPath) === 0) {
+    return filePath.slice(initialPath.length);
+  }
+
+  return filePath;
+}
+
+function getHTTPBase64(url, folder, image_path_after, callback) {
     console.log(url);
 
     const filename = url.split('?')[0].split('/').pop();
@@ -132,8 +150,26 @@ function getHTTPBase64(url, folder, callback) {
 
         // Done callback
         res.on('end', () => {
-            fs.writeFileSync(filepath, body);
-            callback(null, body.toString('base64'), format, filepath)
+            var fileExists = fs.existsSync(filepath);
+
+            var filename = path.basename(filepath);
+            var filefolder = filepath.substring(0, filepath.lastIndexOf("/") + 1);
+
+            console.log(`filename is: ${filename}`);
+            console.log(`filefolder is: ${filefolder}`);
+
+            var i = 0;
+            while (fileExists) {
+                i++;
+                filename = i + "-" + filename;
+                fileExists = fs.existsSync(`${filefolder}${filename}`);
+            }
+
+            var new_file = `${filefolder}${filename}`;
+            console.log(`filename is: ${new_file}`);
+
+            fs.writeFileSync(new_file, body);
+            callback(null, body.toString('base64'), format, new_file, image_path_after)
         });
 
         // res.on('end', () => callback(null, body.toString('base64'), format));
@@ -143,14 +179,14 @@ function getHTTPBase64(url, folder, callback) {
     req.on('error', (err) => callback(err));
 }
 
-function getSrcBase64(base, src, folder, callback) {
+function getSrcBase64(base, src, folder, image_path_after, callback) {
     if (!url.parse(src).hostname) {
         // Get local file
         var file_path = path.join(base, src);
         fs.readFile(file_path, 'base64', callback);
     } else {
         // Get remote file
-        getHTTPBase64(src, folder, callback);
+        getHTTPBase64(src, folder, image_path_after, callback);
     }
 }
 
