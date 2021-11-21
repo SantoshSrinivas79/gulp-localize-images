@@ -70,7 +70,8 @@ function plugin(options = {}, folder = '', image_path_after = '') {
 
 
                             console.log(`Going to set file to .${relative_path}`);
-                            $img.attr('src', `.${relative_path}`);
+                            // $img.attr('src', `.${relative_path}`);
+                            $img.attr(attribute, `.${relative_path}`);
                         } else {
                             console.error(`Failed to identify format of ${src}!`);
                         }
