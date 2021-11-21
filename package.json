@@ -1,11 +1,11 @@
 {
-  "name": "@SantoshSrinivas79/gulp-inline-images",
-  "version": "1.3.1",
-  "description": "Gulp plugin for converting linked HTML images into base64 encoded inline images. Works with local and remote files.",
+  "name": "@SantoshSrinivas79/gulp-localize-images",
+  "version": "1.0.0",
+  "description": "Gulp plugin for converting remote HTML images into local inline images.",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/SantoshSrinivas79/gulp-inline-images"
+    "url": "https://github.com/SantoshSrinivas79/gulp-localize-images"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.10",
@@ -16,7 +16,7 @@
   "scripts": {
     "release": "release-it"
   },
-  "author": "Austin Kurpuis && Ziflow Team && SantoshSrinivas79",
+  "author": "SantoshSrinivas79",
   "license": "MIT",
   "keywords": [
     "gulp",

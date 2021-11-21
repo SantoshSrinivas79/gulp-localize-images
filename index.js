@@ -1,2 +1,2 @@
 'use strict';
-module.exports = require('./local-images').localize;
+module.exports = require('./local-images').plugin;

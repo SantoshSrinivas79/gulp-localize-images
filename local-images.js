@@ -8,12 +8,12 @@ const util = require('gulp-util');
 const through = require('through2');
 const cheerio = require('cheerio');
 const crypto = require('crypto');
-const PLUGIN_NAME = 'gulp-inline-images';
+const PLUGIN_NAME = 'gulp-localize-images';
 const MIME_TYPE_REGEX = /.+\/([^\s]*)/;
-const INLINE_ATTR = 'inline';
-const NOT_INLINE_ATTR = `!${INLINE_ATTR}`;
+const LOCALIZE_ATTR = 'localize';
+const NOT_LOCALIZE_ATTR = `!${LOCALIZE_ATTR}`;
 
-function localize(options = {}) {
+function plugin(options = {}, folder = '') {
     var selector = options.selector || 'img[src]';
     var attribute = options.attribute || 'src';
 
@@ -27,9 +27,9 @@ function localize(options = {}) {
             var contents = file.contents.toString(encoding);
             // Load it into cheerio's virtual DOM for easy manipulation
             var $ = cheerio.load(contents, { decodeEntities: false });
-            var inline_flag = $(`img[${INLINE_ATTR}]`);
-            // If images with an inline attr are found that is the selection we want
-            var img_tags = inline_flag.length ? inline_flag : $(selector);
+            var localize_flag = $(`img[${LOCALIZE_ATTR}]`);
+            // If images with an localize attr are found that is the selection we want
+            var img_tags = localize_flag.length ? localize_flag : $(selector);
             var count = 0;
 
             img_tags.each(function() {
@@ -38,28 +38,30 @@ function localize(options = {}) {
                 // Save the file format from the extension
                 var ext_format = path.extname(src).substr(1);
 
-                // If inline_flag tags were found we want to remove the inline tag
-                if (inline_flag.length) {
-                    $img.removeAttr(INLINE_ATTR);
+                // If localize_flag tags were found we want to remove the localize tag
+                if (localize_flag.length) {
+                    $img.removeAttr(LOCALIZE_ATTR);
                 }
 
-                // Find !inline attribute
-                var not_inline_flag = $img.attr(NOT_INLINE_ATTR);
+                // Find !localize attribute
+                var not_localize_flag = $img.attr(NOT_LOCALIZE_ATTR);
 
-                if (typeof not_inline_flag !== typeof undefined && not_inline_flag !== false) {
+                if (typeof not_localize_flag !== typeof undefined && not_localize_flag !== false) {
                     // Remove the tag and don't process this file
-                    return $img.removeAttr(NOT_INLINE_ATTR);
+                    return $img.removeAttr(NOT_LOCALIZE_ATTR);
                 }
 
                 // Count async ops
                 count++;
 
-                getSrcBase64(options.basedir || file.base, src, function(err, result, res_format) {
+                getSrcBase64(options.basedir || file.base, src, folder, function(err, result, res_format, filepath) {
                     if (err) console.error(err);
                     else
                         // Need a format in and a result for this to work
                         if (result && (ext_format || res_format)) {
-                            $img.attr('src', `data:image/${ext_format};base64,${result}`);
+                            // $img.attr('src', `data:image/${ext_format};base64,${result}`);
+                            console.log(`Going to set file to ./${filepath.replace(process.cwd() + '/', '')}`);
+                            $img.attr('src', `${filepath.replace(process.cwd() + '/', '')}`);
                         } else {
                             console.error(`Failed to identify format of ${src}!`);
                         }
@@ -82,7 +84,7 @@ function localize(options = {}) {
 // fs create directory based on a full file path even if it does not exist
 function createDir(dir) {
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir);
+    fs.mkdirSync(dir, { recursive: true });
   }
   return dir;
 }
@@ -92,13 +94,13 @@ function createDirFromPath(path) {
   createDir(dir);
 }
 
-function getHTTPBase64(url, callback) {
+function getHTTPBase64(url, folder, callback) {
     console.log(url);
 
     const filename = url.split('?')[0].split('/').pop();
     const dir = process.cwd();
     const url_md5 = crypto.createHash('md5').update(url).digest('hex');
-    const filepath = `${dir}/src/data/${url_md5}/${filename}`;
+    const filepath = `${dir}/${folder}/${filename}`;
     const destDir = createDirFromPath(filepath);
     console.log(filepath);
 
@@ -109,7 +111,7 @@ function getHTTPBase64(url, callback) {
         // Check for redirect
         if (res.statusCode >= 301 && res.statusCode < 400 && res.headers.location) {
             // Redirect
-            return getHTTPBase64(res.headers.location, callback);
+            return getHTTPBase64(res.headers.location, folder, callback);
         }
         // Check for HTTP errors
         if (res.statusCode < 200 || res.statusCode >= 400) {
@@ -131,7 +133,7 @@ function getHTTPBase64(url, callback) {
         // Done callback
         res.on('end', () => {
             fs.writeFileSync(filepath, body);
-            callback(null, body.toString('base64'), format)
+            callback(null, body.toString('base64'), format, filepath)
         });
 
         // res.on('end', () => callback(null, body.toString('base64'), format));
@@ -141,14 +143,14 @@ function getHTTPBase64(url, callback) {
     req.on('error', (err) => callback(err));
 }
 
-function getSrcBase64(base, src, callback) {
+function getSrcBase64(base, src, folder, callback) {
     if (!url.parse(src).hostname) {
         // Get local file
         var file_path = path.join(base, src);
         fs.readFile(file_path, 'base64', callback);
     } else {
         // Get remote file
-        getHTTPBase64(src, callback);
+        getHTTPBase64(src, folder, callback);
     }
 }
 
