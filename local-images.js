@@ -14,6 +14,7 @@ const LOCALIZE_ATTR = 'localize';
 const NOT_LOCALIZE_ATTR = `!${LOCALIZE_ATTR}`;
 
 function plugin(options = {}, folder = '', image_path_after = '') {
+    console.log(`going to localize image in ${folder} in ${image_path_after}`);
     var selector = options.selector || 'img[src]';
     var attribute = options.attribute || 'src';
 
@@ -53,7 +54,8 @@ function plugin(options = {}, folder = '', image_path_after = '') {
 
                 // Count async ops
                 count++;
-
+                
+                console.log(`going to get image for ${file.base} in ${src} in ${folder} in ${image_path_after}`);
                 getSrcBase64(options.basedir || file.base, src, folder, image_path_after, function(err, result, res_format, filepath, image_path_after) {
                     if (err) console.error(err);
                     else
@@ -121,7 +123,7 @@ function getHTTPBase64(url, folder, image_path_after, callback) {
     const url_md5 = crypto.createHash('md5').update(url).digest('hex');
     const filepath = `${dir}/${folder}/${filename}`;
     const destDir = createDirFromPath(filepath);
-    console.log(filepath);
+    console.log(`filepath is ${filepath}, directory is ${dir}, filename is ${filename} and folder is ${folder}`);
 
     // Get applicable library
     var lib = url.startsWith('https') ? https : http;
@@ -181,6 +183,7 @@ function getHTTPBase64(url, folder, image_path_after, callback) {
 }
 
 function getSrcBase64(base, src, folder, image_path_after, callback) {
+    console.log(`getting image for ${base} in ${src} in ${folder} in ${image_path_after}`);
     if (!url.parse(src).hostname) {
         // Get local file
         var file_path = path.join(base, src);
