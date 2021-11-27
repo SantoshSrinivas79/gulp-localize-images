@@ -169,6 +169,7 @@ function getHTTPBase64(url, folder, image_path_after, callback) {
             }
 
             var new_file = `${filefolder}${filename}`;
+            new_file=decodeURIComponent(new_file);
             console.log(`filename is: ${new_file}`);
 
             fs.writeFileSync(new_file, body);
