@@ -29,27 +29,43 @@ function plugin(options = {}, folder = '', image_path_after = '') {
             // Load it into cheerio's virtual DOM for easy manipulation
             var $ = cheerio.load(contents, { decodeEntities: false });
             var localize_flag = $(`img[${LOCALIZE_ATTR}]`);
-            // If images with an localize attr are found that is the selection we want
-            var img_tags = localize_flag.length ? localize_flag : $(selector);
+
+            console.log(selector)
+
+            if(selector === 'div[style*="background"]'){
+                var img_tags = $(selector);
+                console.log(img_tags);
+            } else {
+                // If images with an localize attr are found that is the selection we want
+                var img_tags = localize_flag.length ? localize_flag : $(selector);
+            }
             var count = 0;
 
             img_tags.each(function() {
                 var $img = $(this);
-                var src = $img.attr(attribute);
-                // Save the file format from the extension
-                var ext_format = path.extname(src).substr(1);
 
-                // If localize_flag tags were found we want to remove the localize tag
-                if (localize_flag.length) {
-                    $img.removeAttr(LOCALIZE_ATTR);
-                }
+                if(selector === 'div[style*="background"]'){
+                    var src = $img.css('background').slice(4, -1).replace(/['"]+/g, '');
+                    console.log(src);
+                    // Save the file format from the extension
+                    var ext_format = path.extname(src).substr(1);
+                } else {
+                    var src = $img.attr(attribute);
+                    // Save the file format from the extension
+                    var ext_format = path.extname(src).substr(1);
 
-                // Find !localize attribute
-                var not_localize_flag = $img.attr(NOT_LOCALIZE_ATTR);
+                    // If localize_flag tags were found we want to remove the localize tag
+                    if (localize_flag.length) {
+                        $img.removeAttr(LOCALIZE_ATTR);
+                    }
 
-                if (typeof not_localize_flag !== typeof undefined && not_localize_flag !== false) {
-                    // Remove the tag and don't process this file
-                    return $img.removeAttr(NOT_LOCALIZE_ATTR);
+                    // Find !localize attribute
+                    var not_localize_flag = $img.attr(NOT_LOCALIZE_ATTR);
+
+                    if (typeof not_localize_flag !== typeof undefined && not_localize_flag !== false) {
+                        // Remove the tag and don't process this file
+                        return $img.removeAttr(NOT_LOCALIZE_ATTR);
+                    }
                 }
 
                 // Count async ops
@@ -73,7 +89,12 @@ function plugin(options = {}, folder = '', image_path_after = '') {
 
                             console.log(`Going to set file to .${relative_path}`);
                             // $img.attr('src', `.${relative_path}`);
-                            $img.attr(attribute, `.${relative_path}`);
+
+                            if(selector === 'div[style*="background"]'){
+                                $img.css('background', `url(.${relative_path})`);
+                            } else {
+                                $img.attr(attribute, `.${relative_path}`);
+                            }
                         } else {
                             console.error(`Failed to identify format of ${src}!`);
                         }
